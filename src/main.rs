@@ -28,6 +28,7 @@ macro_rules! cli_error {
 
 enum Format {
     Json,
+    Toml,
     Yaml,
 }
 
@@ -37,6 +38,7 @@ impl FromStr for Format {
     fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
             "json" => Ok(Format::Json),
+            "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
             _ => Err(format!("Illegal format: {}", name)),
         }
@@ -63,6 +65,7 @@ fn main_impl() -> Result<(), Box<dyn Error>> {
         print!(
             "Supported formats:
   json    JavaScript Object Notation
+  toml    Tom's Obvious, Minimal Language
   yaml    YAML Ain't Markup Language
 "
         );
@@ -80,36 +83,45 @@ fn main_impl() -> Result<(), Box<dyn Error>> {
     };
 
     let value = match matches.value_of("input") {
-        Some("-") | None => from_reader(input_format, stdin())?,
-        Some(path) => from_reader(input_format, File::open(path)?)?,
+        Some("-") | None => from_reader(input_format, &mut stdin())?,
+        Some(path) => from_reader(input_format, &mut File::open(path)?)?,
     };
 
     match matches.value_of("output") {
-        Some("-") | None => to_writer(output_format, stdout(), &value)?,
-        Some(path) => to_writer(output_format, File::create(path)?, &value)?,
+        Some("-") | None => to_writer(output_format, &mut stdout(), &value)?,
+        Some(path) => to_writer(output_format, &mut File::create(path)?, &value)?,
     };
 
     Ok(())
 }
 
-fn from_reader<R>(format: Format, reader: R) -> Result<Variant, Box<dyn Error>>
+fn from_reader<R>(format: Format, reader: &mut R) -> Result<Variant, Box<dyn Error>>
 where
     R: Read,
 {
     let value = match format {
         Format::Json => serde_json::from_reader(reader)?,
+        Format::Toml => {
+            let mut s = String::new();
+            reader.read_to_string(&mut s)?;
+            toml::de::from_str(&s)?
+        }
         Format::Yaml => serde_yaml::from_reader(reader)?,
     };
 
     Ok(value)
 }
 
-fn to_writer<W>(format: Format, writer: W, value: &Variant) -> Result<(), Box<dyn Error>>
+fn to_writer<W>(format: Format, writer: &mut W, value: &Variant) -> Result<(), Box<dyn Error>>
 where
     W: Write,
 {
     match format {
         Format::Json => serde_json::to_writer_pretty(writer, value)?,
+        Format::Toml => {
+            let s = toml::ser::to_string_pretty(value)?;
+            writer.write(s.as_bytes())?;
+        }
         Format::Yaml => serde_yaml::to_writer(writer, value)?,
     };
 
