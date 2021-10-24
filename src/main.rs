@@ -28,6 +28,7 @@ macro_rules! cli_error {
 
 enum Format {
     Json,
+    Pickle,
     Toml,
     Yaml,
 }
@@ -38,6 +39,7 @@ impl FromStr for Format {
     fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
             "json" => Ok(Format::Json),
+            "pickle" => Ok(Format::Pickle),
             "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
             _ => Err(format!("Illegal format: {}", name)),
@@ -65,6 +67,7 @@ fn main_impl() -> Result<(), Box<dyn Error>> {
         print!(
             "Supported formats:
   json    JavaScript Object Notation
+  pickle  Python's serialization format
   toml    Tom's Obvious, Minimal Language
   yaml    YAML Ain't Markup Language
 "
@@ -101,6 +104,10 @@ where
 {
     let value = match format {
         Format::Json => serde_json::from_reader(reader)?,
+        Format::Pickle => {
+            let opts = serde_pickle::DeOptions::new();
+            serde_pickle::from_reader(reader, opts)?
+        }
         Format::Toml => {
             let mut s = String::new();
             reader.read_to_string(&mut s)?;
@@ -118,6 +125,10 @@ where
 {
     match format {
         Format::Json => serde_json::to_writer_pretty(writer, value)?,
+        Format::Pickle => {
+            let opts = serde_pickle::SerOptions::new();
+            serde_pickle::to_writer(writer, value, opts)?
+        }
         Format::Toml => {
             let s = toml::ser::to_string_pretty(value)?;
             writer.write(s.as_bytes())?;
