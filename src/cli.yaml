@@ -1,0 +1,23 @@
+name: fconv
+args:
+  - formats:
+      long: formats
+      help: Prints the supported formats
+  - from:
+      short: f
+      long: from-format
+      value_name: FORMAT
+      help: Specifies the format of the input file, required
+  - to:
+      short: t
+      long: to-format
+      value_name: FORMAT
+      help: Specifies the format of the output file, required
+  - output:
+      short: o
+      long: output
+      help: 'Specifies the path to the output file (default: standard input)'
+      value_name: FILE
+  - input:
+      help: 'Specifies the path to the input file (default: standard input)'
+      value_name: FILE
