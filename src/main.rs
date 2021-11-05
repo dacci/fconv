@@ -131,7 +131,7 @@ where
         }
         Format::Toml => {
             let s = toml::ser::to_string_pretty(value)?;
-            writer.write(s.as_bytes())?;
+            writer.write_all(s.as_bytes())?;
         }
         Format::Yaml => serde_yaml::to_writer(writer, value)?,
     };
