@@ -1,29 +1,55 @@
 mod variant;
 
 use clap::{load_yaml, App, ArgMatches};
-use std::error::Error;
-use std::fmt::{Display, Error as FmtError, Formatter};
 use std::fs::File;
 use std::io::{stdin, stdout, Read, Write};
 use std::process::exit;
 use std::str::FromStr;
 use variant::Variant;
 
-#[derive(Debug)]
-struct CliError(String);
+enum CliError {
+    Usage(String),
+    Io(String),
+    SerDe(String),
+}
 
-impl Display for CliError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        f.write_str(&self.0)
+type StdResult<T, E> = std::result::Result<T, E>;
+type Result<T> = StdResult<T, CliError>;
+
+impl From<std::io::Error> for CliError {
+    fn from(e: std::io::Error) -> Self {
+        CliError::Io(format!("{}", e))
     }
 }
 
-impl Error for CliError {}
+impl From<serde_json::Error> for CliError {
+    fn from(e: serde_json::Error) -> Self {
+        CliError::SerDe(format!("{}", e))
+    }
+}
 
-macro_rules! cli_error {
-    ($($arg:tt)*) => {
-        Box::new(CliError(format!($($arg)*)))
-    };
+impl From<serde_pickle::Error> for CliError {
+    fn from(e: serde_pickle::Error) -> Self {
+        CliError::SerDe(format!("{}", e))
+    }
+}
+
+impl From<toml::de::Error> for CliError {
+    fn from(e: toml::de::Error) -> Self {
+        CliError::SerDe(format!("{}", e))
+    }
+}
+
+impl From<toml::ser::Error> for CliError {
+    fn from(e: toml::ser::Error) -> Self {
+        CliError::SerDe(format!("{}", e))
+    }
+}
+
+impl From<serde_yaml::Error> for CliError {
+    fn from(e: serde_yaml::Error) -> Self {
+        CliError::SerDe(format!("{}", e))
+    }
 }
 
 enum Format {
@@ -34,15 +60,15 @@ enum Format {
 }
 
 impl FromStr for Format {
-    type Err = String;
+    type Err = CliError;
 
-    fn from_str(name: &str) -> Result<Self, Self::Err> {
+    fn from_str(name: &str) -> StdResult<Self, Self::Err> {
         match name {
             "json" => Ok(Format::Json),
             "pickle" => Ok(Format::Pickle),
             "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
-            _ => Err(format!("Illegal format: {}", name)),
+            _ => Err(CliError::Usage(format!("Illegal format: {}", name))),
         }
     }
 }
@@ -55,14 +81,18 @@ fn main() {
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .get_matches();
 
-    let r = main_impl(matches);
-    if r.is_err() {
-        eprintln!("Error: {}", r.unwrap_err());
-        exit(1)
+    if let Err(e) = main_impl(matches) {
+        let (msg, code) = match e {
+            CliError::Usage(msg) => (msg, 1),
+            CliError::Io(msg) => (msg, 2),
+            CliError::SerDe(msg) => (msg, 3),
+        };
+        eprintln!("Error: {}", msg);
+        exit(code);
     }
 }
 
-fn main_impl(matches: ArgMatches) -> Result<(), Box<dyn Error>> {
+fn main_impl(matches: ArgMatches) -> Result<()> {
     if matches.is_present("formats") {
         print!(
             "Supported formats:
@@ -77,12 +107,12 @@ fn main_impl(matches: ArgMatches) -> Result<(), Box<dyn Error>> {
 
     let input_format = match matches.value_of("from") {
         Some(format) => format.parse()?,
-        None => return Err(cli_error!("Input format is not specified")),
+        None => return Err(CliError::Usage("Input format is not specified".to_owned())),
     };
 
     let output_format = match matches.value_of("to") {
         Some(format) => format.parse()?,
-        None => return Err(cli_error!("Output format is not specified")),
+        None => return Err(CliError::Usage("Output format is not specified".to_owned())),
     };
 
     let value = match matches.value_of("input") {
@@ -98,7 +128,7 @@ fn main_impl(matches: ArgMatches) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn from_reader<R>(format: Format, reader: &mut R) -> Result<Variant, Box<dyn Error>>
+fn from_reader<R>(format: Format, reader: &mut R) -> Result<Variant>
 where
     R: Read,
 {
@@ -119,7 +149,7 @@ where
     Ok(value)
 }
 
-fn to_writer<W>(format: Format, writer: &mut W, value: &Variant) -> Result<(), Box<dyn Error>>
+fn to_writer<W>(format: Format, writer: &mut W, value: &Variant) -> Result<()>
 where
     W: Write,
 {
