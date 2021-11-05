@@ -1,6 +1,6 @@
 mod variant;
 
-use clap::{load_yaml, App};
+use clap::{load_yaml, App, ArgMatches};
 use std::error::Error;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::fs::File;
@@ -48,14 +48,6 @@ impl FromStr for Format {
 }
 
 fn main() {
-    let r = main_impl();
-    if r.is_err() {
-        eprintln!("Error: {}", r.unwrap_err());
-        exit(1)
-    }
-}
-
-fn main_impl() -> Result<(), Box<dyn Error>> {
     let cli_def = load_yaml!("cli.yaml");
     let matches = App::from_yaml(cli_def)
         .name(env!("CARGO_BIN_NAME"))
@@ -63,6 +55,14 @@ fn main_impl() -> Result<(), Box<dyn Error>> {
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .get_matches();
 
+    let r = main_impl(matches);
+    if r.is_err() {
+        eprintln!("Error: {}", r.unwrap_err());
+        exit(1)
+    }
+}
+
+fn main_impl(matches: ArgMatches) -> Result<(), Box<dyn Error>> {
     if matches.is_present("formats") {
         print!(
             "Supported formats:
