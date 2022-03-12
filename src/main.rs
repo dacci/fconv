@@ -34,6 +34,12 @@ impl From<serde_pickle::Error> for CliError {
     }
 }
 
+impl From<plist::Error> for CliError {
+    fn from(e: plist::Error) -> Self {
+        CliError::SerDe(format!("{}", e))
+    }
+}
+
 impl From<toml::de::Error> for CliError {
     fn from(e: toml::de::Error) -> Self {
         CliError::SerDe(format!("{}", e))
@@ -55,6 +61,8 @@ impl From<serde_yaml::Error> for CliError {
 enum Format {
     Json,
     Pickle,
+    Plist,
+    PlistB,
     Toml,
     Yaml,
 }
@@ -66,6 +74,8 @@ impl FromStr for Format {
         match name {
             "json" => Ok(Format::Json),
             "pickle" => Ok(Format::Pickle),
+            "plist" => Ok(Format::Plist),
+            "plistb" => Ok(Format::PlistB),
             "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
             _ => Err(CliError::Usage(format!("Illegal format: {}", name))),
@@ -98,6 +108,8 @@ fn main_impl(matches: ArgMatches) -> Result<()> {
             "Supported formats:
   json    JavaScript Object Notation
   pickle  Python's serialization format
+  plist   Property list (XML)
+  plistb  Property list (binary)
   toml    Tom's Obvious, Minimal Language
   yaml    YAML Ain't Markup Language
 "
@@ -138,6 +150,12 @@ where
             let opts = serde_pickle::DeOptions::new();
             serde_pickle::from_reader(reader, opts)?
         }
+        Format::Plist => plist::from_reader_xml(reader)?,
+        Format::PlistB => {
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes)?;
+            plist::from_bytes(&bytes)?
+        }
         Format::Toml => {
             let mut s = String::new();
             reader.read_to_string(&mut s)?;
@@ -159,6 +177,8 @@ where
             let opts = serde_pickle::SerOptions::new();
             serde_pickle::to_writer(writer, value, opts)?
         }
+        Format::Plist => plist::to_writer_xml(writer, value)?,
+        Format::PlistB => plist::to_writer_binary(writer, value)?,
         Format::Toml => {
             let s = toml::ser::to_string_pretty(value)?;
             writer.write_all(s.as_bytes())?;
