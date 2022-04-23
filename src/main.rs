@@ -1,60 +1,72 @@
 mod variant;
 
-use clap::{load_yaml, App, ArgMatches};
+use clap::Parser;
+use std::fmt;
 use std::fs::File;
-use std::io::{stdin, stdout, Read, Write};
-use std::process::exit;
-use std::str::FromStr;
+use std::io;
 use variant::Variant;
 
+#[derive(Debug)]
 enum CliError {
     Usage(String),
     Io(String),
     SerDe(String),
 }
 
-type StdResult<T, E> = std::result::Result<T, E>;
-type Result<T> = StdResult<T, CliError>;
+impl fmt::Display for CliError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            CliError::Usage(s) => s,
+            CliError::Io(s) => s,
+            CliError::SerDe(s) => s,
+        };
+        f.write_str(s)
+    }
+}
+
+impl std::error::Error for CliError {}
+
+type Result<T, E = CliError> = std::result::Result<T, E>;
 
 impl From<std::io::Error> for CliError {
     fn from(e: std::io::Error) -> Self {
-        CliError::Io(format!("{}", e))
+        CliError::Io(format!("{e}"))
     }
 }
 
 impl From<serde_json::Error> for CliError {
     fn from(e: serde_json::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<serde_pickle::Error> for CliError {
     fn from(e: serde_pickle::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<plist::Error> for CliError {
     fn from(e: plist::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<toml::de::Error> for CliError {
     fn from(e: toml::de::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<toml::ser::Error> for CliError {
     fn from(e: toml::ser::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<serde_yaml::Error> for CliError {
     fn from(e: serde_yaml::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
@@ -67,10 +79,10 @@ enum Format {
     Yaml,
 }
 
-impl FromStr for Format {
+impl std::str::FromStr for Format {
     type Err = CliError;
 
-    fn from_str(name: &str) -> StdResult<Self, Self::Err> {
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
             "json" => Ok(Format::Json),
             "pickle" => Ok(Format::Pickle),
@@ -78,32 +90,61 @@ impl FromStr for Format {
             "plistb" => Ok(Format::PlistB),
             "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
-            _ => Err(CliError::Usage(format!("Illegal format: {}", name))),
+            _ => Err(CliError::Usage(format!("illegal format: {name}"))),
         }
     }
 }
 
-fn main() {
-    let cli_def = load_yaml!("cli.yaml");
-    let matches = App::from_yaml(cli_def)
-        .name(env!("CARGO_BIN_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .get_matches();
+#[derive(clap::Parser)]
+#[clap(about, version)]
+struct Args {
+    /// Prints the supported formats
+    #[clap(long, exclusive = true)]
+    formats: bool,
 
-    if let Err(e) = main_impl(matches) {
+    /// Specifies the format of the input file.
+    #[clap(
+        short,
+        long,
+        required_unless_present = "formats",
+        value_name = "FORMAT"
+    )]
+    from_format: Option<Format>,
+
+    /// Specifies the format of the output file.
+    #[clap(
+        short,
+        long,
+        required_unless_present = "formats",
+        value_name = "FORMAT"
+    )]
+    to_format: Option<Format>,
+
+    /// Specifies the path to the output file (default: standard input)
+    #[clap(short, long, value_name = "FILE")]
+    output: Option<String>,
+
+    /// Specifies the path to the input file.
+    #[clap(value_name = "FILE")]
+    input: Option<String>,
+}
+
+fn main() {
+    let args = Args::parse();
+
+    if let Err(e) = main_impl(args) {
         let (msg, code) = match e {
             CliError::Usage(msg) => (msg, 1),
             CliError::Io(msg) => (msg, 2),
             CliError::SerDe(msg) => (msg, 3),
         };
-        eprintln!("Error: {}", msg);
-        exit(code);
+        eprintln!("Error: {msg}");
+        std::process::exit(code);
     }
 }
 
-fn main_impl(matches: ArgMatches) -> Result<()> {
-    if matches.is_present("formats") {
+fn main_impl(args: Args) -> Result<()> {
+    if args.formats {
         print!(
             "Supported formats:
   json    JavaScript Object Notation
@@ -117,24 +158,16 @@ fn main_impl(matches: ArgMatches) -> Result<()> {
         return Ok(());
     }
 
-    let input_format = match matches.value_of("from") {
-        Some(format) => format.parse()?,
-        None => return Err(CliError::Usage("Input format is not specified".to_owned())),
+    let from_format = args.from_format.unwrap();
+    let value = match args.input.as_deref() {
+        Some("-") | None => from_reader(from_format, &mut io::stdin())?,
+        Some(path) => from_reader(from_format, &mut File::open(path)?)?,
     };
 
-    let output_format = match matches.value_of("to") {
-        Some(format) => format.parse()?,
-        None => return Err(CliError::Usage("Output format is not specified".to_owned())),
-    };
-
-    let value = match matches.value_of("input") {
-        Some("-") | None => from_reader(input_format, &mut stdin())?,
-        Some(path) => from_reader(input_format, &mut File::open(path)?)?,
-    };
-
-    match matches.value_of("output") {
-        Some("-") | None => to_writer(output_format, &mut stdout(), &value)?,
-        Some(path) => to_writer(output_format, &mut File::create(path)?, &value)?,
+    let to_format = args.to_format.unwrap();
+    match args.output.as_deref() {
+        Some("-") | None => to_writer(to_format, &mut io::stdout(), &value)?,
+        Some(path) => to_writer(to_format, &mut File::create(path)?, &value)?,
     };
 
     Ok(())
@@ -142,7 +175,7 @@ fn main_impl(matches: ArgMatches) -> Result<()> {
 
 fn from_reader<R>(format: Format, reader: &mut R) -> Result<Variant>
 where
-    R: Read,
+    R: io::Read,
 {
     let value = match format {
         Format::Json => serde_json::from_reader(reader)?,
@@ -169,7 +202,7 @@ where
 
 fn to_writer<W>(format: Format, writer: &mut W, value: &Variant) -> Result<()>
 where
-    W: Write,
+    W: io::Write,
 {
     match format {
         Format::Json => serde_json::to_writer_pretty(writer, value)?,
