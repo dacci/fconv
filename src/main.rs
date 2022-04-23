@@ -3,9 +3,7 @@ mod variant;
 use clap::Parser;
 use std::fmt;
 use std::fs::File;
-use std::io::{stdin, stdout, Read, Write};
-use std::process::exit;
-use std::str::FromStr;
+use std::io;
 use variant::Variant;
 
 #[derive(Debug)]
@@ -28,48 +26,47 @@ impl fmt::Display for CliError {
 
 impl std::error::Error for CliError {}
 
-type StdResult<T, E> = std::result::Result<T, E>;
-type Result<T> = StdResult<T, CliError>;
+type Result<T, E = CliError> = std::result::Result<T, E>;
 
 impl From<std::io::Error> for CliError {
     fn from(e: std::io::Error) -> Self {
-        CliError::Io(format!("{}", e))
+        CliError::Io(format!("{e}"))
     }
 }
 
 impl From<serde_json::Error> for CliError {
     fn from(e: serde_json::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<serde_pickle::Error> for CliError {
     fn from(e: serde_pickle::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<plist::Error> for CliError {
     fn from(e: plist::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<toml::de::Error> for CliError {
     fn from(e: toml::de::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<toml::ser::Error> for CliError {
     fn from(e: toml::ser::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
 impl From<serde_yaml::Error> for CliError {
     fn from(e: serde_yaml::Error) -> Self {
-        CliError::SerDe(format!("{}", e))
+        CliError::SerDe(format!("{e}"))
     }
 }
 
@@ -82,10 +79,10 @@ enum Format {
     Yaml,
 }
 
-impl FromStr for Format {
+impl std::str::FromStr for Format {
     type Err = CliError;
 
-    fn from_str(name: &str) -> StdResult<Self, Self::Err> {
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
             "json" => Ok(Format::Json),
             "pickle" => Ok(Format::Pickle),
@@ -141,8 +138,8 @@ fn main() {
             CliError::Io(msg) => (msg, 2),
             CliError::SerDe(msg) => (msg, 3),
         };
-        eprintln!("Error: {}", msg);
-        exit(code);
+        eprintln!("Error: {msg}");
+        std::process::exit(code);
     }
 }
 
@@ -163,13 +160,13 @@ fn main_impl(args: Args) -> Result<()> {
 
     let from_format = args.from_format.unwrap();
     let value = match args.input.as_deref() {
-        Some("-") | None => from_reader(from_format, &mut stdin())?,
+        Some("-") | None => from_reader(from_format, &mut io::stdin())?,
         Some(path) => from_reader(from_format, &mut File::open(path)?)?,
     };
 
     let to_format = args.to_format.unwrap();
     match args.output.as_deref() {
-        Some("-") | None => to_writer(to_format, &mut stdout(), &value)?,
+        Some("-") | None => to_writer(to_format, &mut io::stdout(), &value)?,
         Some(path) => to_writer(to_format, &mut File::create(path)?, &value)?,
     };
 
@@ -178,7 +175,7 @@ fn main_impl(args: Args) -> Result<()> {
 
 fn from_reader<R>(format: Format, reader: &mut R) -> Result<Variant>
 where
-    R: Read,
+    R: io::Read,
 {
     let value = match format {
         Format::Json => serde_json::from_reader(reader)?,
@@ -205,7 +202,7 @@ where
 
 fn to_writer<W>(format: Format, writer: &mut W, value: &Variant) -> Result<()>
 where
-    W: Write,
+    W: io::Write,
 {
     match format {
         Format::Json => serde_json::to_writer_pretty(writer, value)?,
