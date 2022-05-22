@@ -4,7 +4,7 @@
 
 ```console
 $ fconv --help
-fconv 0.3.0
+fconv 0.4.0
 Data format converter
 
 USAGE:
@@ -17,7 +17,7 @@ OPTIONS:
     -f, --from-format <FORMAT>    Specifies the format of the input file
         --formats                 Prints the supported formats
     -h, --help                    Print help information
-    -o, --output <FILE>           Specifies the path to the output file (default: standard input)
+    -o, --output <FILE>           Specifies the path to the output file (default: standard output)
     -t, --to-format <FORMAT>      Specifies the format of the output file
     -V, --version                 Print version information
 ```
@@ -41,7 +41,7 @@ $ fconv -f toml -t yaml Cargo.toml
 ---
 package:
   name: fconv
-  version: 0.3.0
+  version: 0.4.0
   edition: "2021"
   description: Data format converter
 dependencies:
