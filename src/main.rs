@@ -1,72 +1,89 @@
 mod variant;
 
 use clap::Parser;
+use std::error::Error as StdError;
 use std::fmt;
 use std::fs::File;
 use std::io;
+use std::process::{ExitCode, Termination};
 use variant::Variant;
 
 #[derive(Debug)]
-enum CliError {
+enum Error {
     Usage(String),
-    Io(String),
-    SerDe(String),
+    Io(io::Error),
+    SerDe(Box<dyn StdError + Send + Sync>),
 }
 
-impl fmt::Display for CliError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            CliError::Usage(s) => s,
-            CliError::Io(s) => s,
-            CliError::SerDe(s) => s,
-        };
-        f.write_str(s)
+        match self {
+            Error::Usage(msg) => f.write_str(msg),
+            Error::Io(cause) => write!(f, "{cause}"),
+            Error::SerDe(cause) => write!(f, "{cause}"),
+        }
     }
 }
 
-impl std::error::Error for CliError {}
+impl StdError for Error {}
 
-type Result<T, E = CliError> = std::result::Result<T, E>;
-
-impl From<std::io::Error> for CliError {
-    fn from(e: std::io::Error) -> Self {
-        CliError::Io(format!("{e}"))
+impl Termination for Error {
+    fn report(self) -> ExitCode {
+        match self {
+            Error::Usage(_) => ExitCode::FAILURE,
+            Error::Io(_) => 2.into(),
+            Error::SerDe(_) => 3.into(),
+        }
     }
 }
 
-impl From<serde_json::Error> for CliError {
+type Result<T, E = Error> = std::result::Result<T, E>;
+
+impl From<String> for Error {
+    fn from(msg: String) -> Self {
+        Error::Usage(msg)
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Self {
+        Error::Io(e)
+    }
+}
+
+impl From<serde_json::Error> for Error {
     fn from(e: serde_json::Error) -> Self {
-        CliError::SerDe(format!("{e}"))
+        Error::SerDe(Box::new(e))
     }
 }
 
-impl From<serde_pickle::Error> for CliError {
+impl From<serde_pickle::Error> for Error {
     fn from(e: serde_pickle::Error) -> Self {
-        CliError::SerDe(format!("{e}"))
+        Error::SerDe(Box::new(e))
     }
 }
 
-impl From<plist::Error> for CliError {
+impl From<plist::Error> for Error {
     fn from(e: plist::Error) -> Self {
-        CliError::SerDe(format!("{e}"))
+        Error::SerDe(Box::new(e))
     }
 }
 
-impl From<toml::de::Error> for CliError {
+impl From<toml::de::Error> for Error {
     fn from(e: toml::de::Error) -> Self {
-        CliError::SerDe(format!("{e}"))
+        Error::SerDe(Box::new(e))
     }
 }
 
-impl From<toml::ser::Error> for CliError {
+impl From<toml::ser::Error> for Error {
     fn from(e: toml::ser::Error) -> Self {
-        CliError::SerDe(format!("{e}"))
+        Error::SerDe(Box::new(e))
     }
 }
 
-impl From<serde_yaml::Error> for CliError {
+impl From<serde_yaml::Error> for Error {
     fn from(e: serde_yaml::Error) -> Self {
-        CliError::SerDe(format!("{e}"))
+        Error::SerDe(Box::new(e))
     }
 }
 
@@ -80,7 +97,7 @@ enum Format {
 }
 
 impl std::str::FromStr for Format {
-    type Err = CliError;
+    type Err = Error;
 
     fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
@@ -90,7 +107,7 @@ impl std::str::FromStr for Format {
             "plistb" => Ok(Format::PlistB),
             "toml" => Ok(Format::Toml),
             "yaml" => Ok(Format::Yaml),
-            _ => Err(CliError::Usage(format!("illegal format: {name}"))),
+            _ => Err(format!("Illegal format: {name}").into()),
         }
     }
 }
@@ -129,17 +146,14 @@ struct Args {
     input: Option<String>,
 }
 
-fn main() {
+fn main() -> ExitCode {
     let args = Args::parse();
 
     if let Err(e) = main_impl(args) {
-        let (msg, code) = match e {
-            CliError::Usage(msg) => (msg, 1),
-            CliError::Io(msg) => (msg, 2),
-            CliError::SerDe(msg) => (msg, 3),
-        };
-        eprintln!("Error: {msg}");
-        std::process::exit(code);
+        eprintln!("Error: {e}");
+        e.report()
+    } else {
+        ExitCode::SUCCESS
     }
 }
 
