@@ -137,7 +137,7 @@ struct Args {
     )]
     to_format: Option<Format>,
 
-    /// Specifies the path to the output file (default: standard input)
+    /// Specifies the path to the output file (default: standard output)
     #[clap(short, long, value_name = "FILE")]
     output: Option<String>,
 
