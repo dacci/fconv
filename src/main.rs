@@ -51,41 +51,22 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(e: serde_json::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
+macro_rules! impl_error_serde {
+    ($E:ty) => {
+        impl From<$E> for Error {
+            fn from(e: $E) -> Self {
+                Error::SerDe(Box::new(e))
+            }
+        }
+    };
 }
 
-impl From<serde_pickle::Error> for Error {
-    fn from(e: serde_pickle::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<plist::Error> for Error {
-    fn from(e: plist::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<toml::de::Error> for Error {
-    fn from(e: toml::de::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<toml::ser::Error> for Error {
-    fn from(e: toml::ser::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<serde_yaml::Error> for Error {
-    fn from(e: serde_yaml::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
+impl_error_serde!(plist::Error);
+impl_error_serde!(serde_json::Error);
+impl_error_serde!(serde_pickle::Error);
+impl_error_serde!(serde_yaml::Error);
+impl_error_serde!(toml::de::Error);
+impl_error_serde!(toml::ser::Error);
 
 enum Format {
     Json,
