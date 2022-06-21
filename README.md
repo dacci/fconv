@@ -4,7 +4,7 @@
 
 ```console
 $ fconv --help
-fconv 0.4.0
+fconv 0.5.0
 Data format converter
 
 USAGE:
@@ -26,6 +26,7 @@ OPTIONS:
 
 ```
 $ fconv --formats
+Supported formats:
   json    JavaScript Object Notation
   pickle  Python's serialization format
   plist   Property list (XML)
@@ -41,7 +42,7 @@ $ fconv -f toml -t yaml Cargo.toml
 ---
 package:
   name: fconv
-  version: 0.4.0
+  version: 0.5.0
   edition: "2021"
   description: Data format converter
 dependencies:
@@ -54,7 +55,8 @@ dependencies:
   serde: 1.0.136
   serde-pickle: 1.1.0
   serde_json: 1.0.79
-  serde_test: 1.0.136
   serde_yaml: 0.8.23
   toml: 0.5.9
+dev-dependencies:
+  serde_test: 1.0.136
 ```

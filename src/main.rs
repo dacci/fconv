@@ -51,41 +51,22 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(e: serde_json::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
+macro_rules! impl_error_serde {
+    ($E:ty) => {
+        impl From<$E> for Error {
+            fn from(e: $E) -> Self {
+                Error::SerDe(Box::new(e))
+            }
+        }
+    };
 }
 
-impl From<serde_pickle::Error> for Error {
-    fn from(e: serde_pickle::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<plist::Error> for Error {
-    fn from(e: plist::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<toml::de::Error> for Error {
-    fn from(e: toml::de::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<toml::ser::Error> for Error {
-    fn from(e: toml::ser::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
-
-impl From<serde_yaml::Error> for Error {
-    fn from(e: serde_yaml::Error) -> Self {
-        Error::SerDe(Box::new(e))
-    }
-}
+impl_error_serde!(plist::Error);
+impl_error_serde!(serde_json::Error);
+impl_error_serde!(serde_pickle::Error);
+impl_error_serde!(serde_yaml::Error);
+impl_error_serde!(toml::de::Error);
+impl_error_serde!(toml::ser::Error);
 
 enum Format {
     Json,
@@ -115,7 +96,7 @@ impl std::str::FromStr for Format {
 #[derive(clap::Parser)]
 #[clap(about, version)]
 struct Args {
-    /// Prints the supported formats
+    /// Prints the supported formats.
     #[clap(long, exclusive = true)]
     formats: bool,
 
@@ -137,7 +118,7 @@ struct Args {
     )]
     to_format: Option<Format>,
 
-    /// Specifies the path to the output file (default: standard output)
+    /// Specifies the path to the output file (default: standard output).
     #[clap(short, long, value_name = "FILE")]
     output: Option<String>,
 
@@ -174,23 +155,20 @@ fn main_impl(args: Args) -> Result<()> {
 
     let from_format = args.from_format.unwrap();
     let value = match args.input.as_deref() {
-        Some("-") | None => from_reader(from_format, &mut io::stdin())?,
-        Some(path) => from_reader(from_format, &mut File::open(path)?)?,
+        Some("-") | None => from_reader(from_format, io::stdin())?,
+        Some(path) => from_reader(from_format, File::open(path)?)?,
     };
 
     let to_format = args.to_format.unwrap();
     match args.output.as_deref() {
-        Some("-") | None => to_writer(to_format, &mut io::stdout(), &value)?,
-        Some(path) => to_writer(to_format, &mut File::create(path)?, &value)?,
+        Some("-") | None => to_writer(to_format, io::stdout(), value)?,
+        Some(path) => to_writer(to_format, File::create(path)?, value)?,
     };
 
     Ok(())
 }
 
-fn from_reader<R>(format: Format, reader: &mut R) -> Result<Variant>
-where
-    R: io::Read,
-{
+fn from_reader(format: Format, mut reader: impl io::Read) -> Result<Variant> {
     let value = match format {
         Format::Json => serde_json::from_reader(reader)?,
         Format::Pickle => {
@@ -214,23 +192,20 @@ where
     Ok(value)
 }
 
-fn to_writer<W>(format: Format, writer: &mut W, value: &Variant) -> Result<()>
-where
-    W: io::Write,
-{
+fn to_writer(format: Format, mut writer: impl io::Write, value: Variant) -> Result<()> {
     match format {
-        Format::Json => serde_json::to_writer_pretty(writer, value)?,
+        Format::Json => serde_json::to_writer_pretty(writer, &value)?,
         Format::Pickle => {
             let opts = serde_pickle::SerOptions::new();
-            serde_pickle::to_writer(writer, value, opts)?
+            serde_pickle::to_writer(&mut writer, &value, opts)?
         }
-        Format::Plist => plist::to_writer_xml(writer, value)?,
-        Format::PlistB => plist::to_writer_binary(writer, value)?,
+        Format::Plist => plist::to_writer_xml(writer, &value)?,
+        Format::PlistB => plist::to_writer_binary(writer, &value)?,
         Format::Toml => {
-            let s = toml::ser::to_string_pretty(value)?;
-            writer.write_all(s.as_bytes())?;
+            let s = toml::ser::to_string_pretty(&value)?;
+            writer.write_all(s.as_bytes())?
         }
-        Format::Yaml => serde_yaml::to_writer(writer, value)?,
+        Format::Yaml => serde_yaml::to_writer(writer, &value)?,
     };
 
     Ok(())
