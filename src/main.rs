@@ -173,10 +173,7 @@ fn main_impl(args: Args) -> Result<()> {
 fn from_reader(format: Format, mut reader: impl io::Read) -> Result<Variant> {
     let value = match format {
         Format::Json => serde_json::from_reader(reader)?,
-        Format::Pickle => {
-            let opts = serde_pickle::DeOptions::new();
-            serde_pickle::from_reader(reader, opts)?
-        }
+        Format::Pickle => serde_pickle::from_reader(reader, Default::default())?,
         Format::Plist => plist::from_reader_xml(reader)?,
         Format::PlistB => {
             let mut bytes = Vec::new();
@@ -197,10 +194,7 @@ fn from_reader(format: Format, mut reader: impl io::Read) -> Result<Variant> {
 fn to_writer(format: Format, mut writer: impl io::Write, value: &Variant) -> Result<()> {
     match format {
         Format::Json => serde_json::to_writer_pretty(writer, value)?,
-        Format::Pickle => {
-            let opts = serde_pickle::SerOptions::new();
-            serde_pickle::to_writer(&mut writer, value, opts)?
-        }
+        Format::Pickle => serde_pickle::to_writer(&mut writer, value, Default::default())?,
         Format::Plist => plist::to_writer_xml(writer, value)?,
         Format::PlistB => plist::to_writer_binary(writer, value)?,
         Format::Toml => {
