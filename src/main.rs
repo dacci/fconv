@@ -153,17 +153,19 @@ fn main_impl(args: Args) -> Result<()> {
         return Ok(());
     }
 
-    let from_format = args.from_format.unwrap();
-    let value = match args.input.as_deref() {
-        Some("-") | None => from_reader(from_format, io::stdin())?,
-        Some(path) => from_reader(from_format, File::open(path)?)?,
+    let input: Box<dyn io::Read> = match args.input.as_deref() {
+        Some("-") | None => Box::new(io::stdin()),
+        Some(path) => Box::new(File::open(path)?),
     };
 
-    let to_format = args.to_format.unwrap();
-    match args.output.as_deref() {
-        Some("-") | None => to_writer(to_format, io::stdout(), value)?,
-        Some(path) => to_writer(to_format, File::create(path)?, value)?,
+    let value = from_reader(args.from_format.unwrap(), input)?;
+
+    let output: Box<dyn io::Write> = match args.output.as_deref() {
+        Some("-") | None => Box::new(io::stdout()),
+        Some(path) => Box::new(File::create(path)?),
     };
+
+    to_writer(args.to_format.unwrap(), output, value)?;
 
     Ok(())
 }
