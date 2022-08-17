@@ -4,7 +4,7 @@
 
 ```console
 $ fconv --help
-fconv 0.5.0
+fconv 0.6.0
 Data format converter
 
 USAGE:
@@ -42,7 +42,7 @@ $ fconv -f toml -t yaml Cargo.toml
 ---
 package:
   name: fconv
-  version: 0.5.0
+  version: 0.6.0
   edition: "2021"
   description: Data format converter
 dependencies:

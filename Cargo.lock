@@ -78,10 +78,10 @@ dependencies = [
 
 [[package]]
 name = "fconv"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "clap",
- "linked-hash-map",
+ "indexmap",
  "plist",
  "serde",
  "serde-pickle",
@@ -148,12 +148,6 @@ checksum = "f30344350a2a51da54c1d53be93fade8a237e545dbcc4bdbe635413f2117cab9"
 dependencies = [
  "safemem",
 ]
-
-[[package]]
-name = "linked-hash-map"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "num-bigint"

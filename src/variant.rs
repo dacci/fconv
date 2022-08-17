@@ -1,4 +1,4 @@
-use linked_hash_map::LinkedHashMap;
+use indexmap::IndexMap as Map;
 use serde::de;
 use serde::ser;
 use std::fmt;
@@ -27,7 +27,7 @@ pub enum Variant {
     Unit,
     NewtypeStruct(String, Box<Variant>),
     Seq(Vec<Variant>),
-    Map(LinkedHashMap<String, Variant>),
+    Map(Map<String, Variant>),
 }
 
 impl<'de> de::Deserialize<'de> for Variant {
@@ -144,9 +144,9 @@ impl<'de> de::Deserialize<'de> for Variant {
 
             fn visit_map<A: de::MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
                 let mut v = if let Some(len) = map.size_hint() {
-                    LinkedHashMap::with_capacity(len)
+                    Map::with_capacity(len)
                 } else {
-                    LinkedHashMap::new()
+                    Map::new()
                 };
 
                 while let Some((key, value)) = map.next_entry::<String, Variant>()? {
@@ -269,7 +269,7 @@ mod tests {
             &[Token::Seq { len: Some(1) }, Token::Unit, Token::SeqEnd],
         );
         assert_tokens(
-            &Variant::Map(LinkedHashMap::new()),
+            &Variant::Map(Map::new()),
             &[Token::Map { len: Some(0) }, Token::MapEnd],
         );
     }

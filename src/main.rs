@@ -153,17 +153,19 @@ fn main_impl(args: Args) -> Result<()> {
         return Ok(());
     }
 
-    let from_format = args.from_format.unwrap();
-    let value = match args.input.as_deref() {
-        Some("-") | None => from_reader(from_format, io::stdin())?,
-        Some(path) => from_reader(from_format, File::open(path)?)?,
+    let input: Box<dyn io::Read> = match args.input.as_deref() {
+        Some("-") | None => Box::new(io::stdin()),
+        Some(path) => Box::new(File::open(path)?),
     };
 
-    let to_format = args.to_format.unwrap();
-    match args.output.as_deref() {
-        Some("-") | None => to_writer(to_format, io::stdout(), value)?,
-        Some(path) => to_writer(to_format, File::create(path)?, value)?,
+    let value = from_reader(args.from_format.unwrap(), input)?;
+
+    let output: Box<dyn io::Write> = match args.output.as_deref() {
+        Some("-") | None => Box::new(io::stdout()),
+        Some(path) => Box::new(File::create(path)?),
     };
+
+    to_writer(args.to_format.unwrap(), output, &value)?;
 
     Ok(())
 }
@@ -171,10 +173,7 @@ fn main_impl(args: Args) -> Result<()> {
 fn from_reader(format: Format, mut reader: impl io::Read) -> Result<Variant> {
     let value = match format {
         Format::Json => serde_json::from_reader(reader)?,
-        Format::Pickle => {
-            let opts = serde_pickle::DeOptions::new();
-            serde_pickle::from_reader(reader, opts)?
-        }
+        Format::Pickle => serde_pickle::from_reader(reader, Default::default())?,
         Format::Plist => plist::from_reader_xml(reader)?,
         Format::PlistB => {
             let mut bytes = Vec::new();
@@ -192,20 +191,17 @@ fn from_reader(format: Format, mut reader: impl io::Read) -> Result<Variant> {
     Ok(value)
 }
 
-fn to_writer(format: Format, mut writer: impl io::Write, value: Variant) -> Result<()> {
+fn to_writer(format: Format, mut writer: impl io::Write, value: &Variant) -> Result<()> {
     match format {
-        Format::Json => serde_json::to_writer_pretty(writer, &value)?,
-        Format::Pickle => {
-            let opts = serde_pickle::SerOptions::new();
-            serde_pickle::to_writer(&mut writer, &value, opts)?
-        }
-        Format::Plist => plist::to_writer_xml(writer, &value)?,
-        Format::PlistB => plist::to_writer_binary(writer, &value)?,
+        Format::Json => serde_json::to_writer_pretty(writer, value)?,
+        Format::Pickle => serde_pickle::to_writer(&mut writer, value, Default::default())?,
+        Format::Plist => plist::to_writer_xml(writer, value)?,
+        Format::PlistB => plist::to_writer_binary(writer, value)?,
         Format::Toml => {
-            let s = toml::ser::to_string_pretty(&value)?;
+            let s = toml::ser::to_string_pretty(value)?;
             writer.write_all(s.as_bytes())?
         }
-        Format::Yaml => serde_yaml::to_writer(writer, &value)?,
+        Format::Yaml => serde_yaml::to_writer(writer, value)?,
     };
 
     Ok(())
