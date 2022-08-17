@@ -3,6 +3,7 @@ name = "fconv"
 version = "0.5.1"
 edition = "2021"
 description = "Data format converter"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
