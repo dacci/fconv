@@ -4,22 +4,20 @@
 
 ```console
 $ fconv --help
-fconv 0.6.0
 Data format converter
 
-USAGE:
-    fconv [OPTIONS] [FILE]
+Usage: fconv [OPTIONS] [FILE]
 
-ARGS:
-    <FILE>    Specifies the path to the input file
+Arguments:
+  [FILE]  Specifies the path to the input file
 
-OPTIONS:
-    -f, --from-format <FORMAT>    Specifies the format of the input file
-        --formats                 Prints the supported formats
-    -h, --help                    Print help information
-    -o, --output <FILE>           Specifies the path to the output file (default: standard output)
-    -t, --to-format <FORMAT>      Specifies the format of the output file
-    -V, --version                 Print version information
+Options:
+      --formats               Prints the supported formats
+  -f, --from-format <FORMAT>  Specifies the format of the input file
+  -t, --to-format <FORMAT>    Specifies the format of the output file
+  -o, --output <FILE>         Specifies the path to the output file (default: standard output)
+  -h, --help                  Print help information
+  -V, --version               Print version information
 ```
 
 ## Supported formats
@@ -39,24 +37,29 @@ Supported formats:
 
 ```console
 $ fconv -f toml -t yaml Cargo.toml
----
 package:
   name: fconv
-  version: 0.6.0
-  edition: "2021"
+  version: 0.7.0
+  edition: '2021'
   description: Data format converter
+  license: MIT
 dependencies:
   clap:
-    version: 3.1.12
+    version: 4.0.18
     features:
-      - derive
-  linked-hash-map: 0.5.4
+    - derive
+  indexmap: 1.9.1
   plist: 1.3.1
-  serde: 1.0.136
-  serde-pickle: 1.1.0
-  serde_json: 1.0.79
-  serde_yaml: 0.8.23
+  serde: 1.0.142
+  serde-pickle: 1.1.1
+  serde_json: 1.0.83
+  serde_yaml: 0.9.4
   toml: 0.5.9
 dev-dependencies:
-  serde_test: 1.0.136
+  serde_test: 1.0.142
+profile:
+  release:
+    codegen-units: 1
+    lto: true
+    strip: true
 ```
