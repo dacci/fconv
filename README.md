@@ -39,7 +39,7 @@ Supported formats:
 $ fconv -f toml -t yaml Cargo.toml
 package:
   name: fconv
-  version: 0.6.0
+  version: 0.7.0
   edition: '2021'
   description: Data format converter
   license: MIT
