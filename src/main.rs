@@ -68,6 +68,7 @@ impl_error_serde!(serde_yaml::Error);
 impl_error_serde!(toml::de::Error);
 impl_error_serde!(toml::ser::Error);
 
+#[derive(Clone, Copy)]
 enum Format {
     Json,
     Pickle,
@@ -94,14 +95,14 @@ impl std::str::FromStr for Format {
 }
 
 #[derive(clap::Parser)]
-#[clap(about, version)]
+#[command(about, version)]
 struct Args {
     /// Prints the supported formats.
-    #[clap(long, exclusive = true)]
+    #[arg(long, exclusive = true)]
     formats: bool,
 
     /// Specifies the format of the input file.
-    #[clap(
+    #[arg(
         short,
         long,
         required_unless_present = "formats",
@@ -110,7 +111,7 @@ struct Args {
     from_format: Option<Format>,
 
     /// Specifies the format of the output file.
-    #[clap(
+    #[arg(
         short,
         long,
         required_unless_present = "formats",
@@ -119,11 +120,11 @@ struct Args {
     to_format: Option<Format>,
 
     /// Specifies the path to the output file (default: standard output).
-    #[clap(short, long, value_name = "FILE")]
+    #[arg(short, long, value_name = "FILE")]
     output: Option<String>,
 
     /// Specifies the path to the input file.
-    #[clap(value_name = "FILE")]
+    #[arg(value_name = "FILE")]
     input: Option<String>,
 }
 
