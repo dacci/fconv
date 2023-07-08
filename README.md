@@ -16,8 +16,8 @@ Options:
   -f, --from-format <FORMAT>  Specifies the format of the input file
   -t, --to-format <FORMAT>    Specifies the format of the output file
   -o, --output <FILE>         Specifies the path to the output file (default: standard output)
-  -h, --help                  Print help information
-  -V, --version               Print version information
+  -h, --help                  Print help
+  -V, --version               Print version
 ```
 
 ## Supported formats
@@ -39,24 +39,24 @@ Supported formats:
 $ fconv -f toml -t yaml Cargo.toml
 package:
   name: fconv
-  version: 0.7.0
+  version: 0.7.1
   edition: '2021'
   description: Data format converter
   license: MIT
 dependencies:
   clap:
-    version: 4.0.18
+    version: 4.3.11
     features:
     - derive
-  indexmap: 1.9.1
-  plist: 1.3.1
-  serde: 1.0.142
+  indexmap: 2.0.0
+  plist: 1.4.3
+  serde: 1.0.167
   serde-pickle: 1.1.1
-  serde_json: 1.0.83
-  serde_yaml: 0.9.4
-  toml: 0.5.9
+  serde_json: 1.0.100
+  serde_yaml: 0.9.22
+  toml: 0.7.6
 dev-dependencies:
-  serde_test: 1.0.142
+  serde_test: 1.0.167
 profile:
   release:
     codegen-units: 1
