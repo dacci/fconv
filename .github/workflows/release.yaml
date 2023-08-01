@@ -26,6 +26,12 @@ jobs:
         run: cargo test --all-features
       - name: Build for release
         run: cargo build --release
+      - name: Sign
+        uses: dlemstra/code-sign-action@v1
+        with:
+          certificate: ${{ secrets.CERTIFICATE }}
+          password: ${{ secrets.CERTIFICATE_PASSWORD }}
+          files: target/release/fconv.exe
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
