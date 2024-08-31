@@ -10,13 +10,11 @@ pub enum Variant {
     I16(i16),
     I32(i32),
     I64(i64),
-    #[cfg(not(no_integer128))]
     I128(i128),
     U8(u8),
     U16(u16),
     U32(u32),
     U64(u64),
-    #[cfg(not(no_integer128))]
     U128(u128),
     F32(f32),
     F64(f64),
@@ -61,7 +59,6 @@ impl<'de> de::Deserialize<'de> for Variant {
                 Ok(Variant::I64(v))
             }
 
-            #[cfg(not(no_integer128))]
             fn visit_i128<E: de::Error>(self, v: i128) -> Result<Self::Value, E> {
                 Ok(Variant::I128(v))
             }
@@ -82,7 +79,6 @@ impl<'de> de::Deserialize<'de> for Variant {
                 Ok(Variant::U64(v))
             }
 
-            #[cfg(not(no_integer128))]
             fn visit_u128<E: de::Error>(self, v: u128) -> Result<Self::Value, E> {
                 Ok(Variant::U128(v))
             }
@@ -169,13 +165,11 @@ impl ser::Serialize for Variant {
             Variant::I16(v) => s.serialize_i16(*v),
             Variant::I32(v) => s.serialize_i32(*v),
             Variant::I64(v) => s.serialize_i64(*v),
-            #[cfg(not(no_integer128))]
             Variant::I128(v) => s.serialize_i128(*v),
             Variant::U8(v) => s.serialize_u8(*v),
             Variant::U16(v) => s.serialize_u16(*v),
             Variant::U32(v) => s.serialize_u32(*v),
             Variant::U64(v) => s.serialize_u64(*v),
-            #[cfg(not(no_integer128))]
             Variant::U128(v) => s.serialize_u128(*v),
             Variant::F32(v) => s.serialize_f32(*v),
             Variant::F64(v) => s.serialize_f64(*v),
