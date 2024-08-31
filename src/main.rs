@@ -68,7 +68,7 @@ impl_error_serde!(serde_yaml_ng::Error);
 impl_error_serde!(toml::de::Error);
 impl_error_serde!(toml::ser::Error);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, clap::ValueEnum)]
 enum Format {
     Json,
     Pickle,
@@ -98,13 +98,18 @@ impl std::str::FromStr for Format {
 #[command(about, version)]
 struct Args {
     /// Prints the supported formats.
-    #[arg(long, exclusive = true)]
+    #[arg(long, num_args = 0, exclusive = true)]
     formats: bool,
+
+    /// Generate shell completions.
+    #[arg(long, num_args = 1, value_name = "SHELL", exclusive = true)]
+    generate_completion: Option<clap_complete::aot::Shell>,
 
     /// Specifies the format of the input file.
     #[arg(
         short,
         long,
+        num_args = 1,
         required_unless_present = "formats",
         value_name = "FORMAT"
     )]
@@ -114,17 +119,18 @@ struct Args {
     #[arg(
         short,
         long,
+        num_args = 1,
         required_unless_present = "formats",
         value_name = "FORMAT"
     )]
     to_format: Option<Format>,
 
     /// Specifies the path to the output file (default: standard output).
-    #[arg(short, long, value_name = "FILE")]
+    #[arg(short, long, num_args = 1, value_name = "FILE")]
     output: Option<String>,
 
     /// Specifies the path to the input file.
-    #[arg(value_name = "FILE")]
+    #[arg(num_args = 1, value_name = "FILE")]
     input: Option<String>,
 }
 
@@ -150,6 +156,17 @@ fn main_impl(args: Args) -> Result<()> {
   toml    Tom's Obvious, Minimal Language
   yaml    YAML Ain't Markup Language
 "
+        );
+        return Ok(());
+    }
+
+    if let Some(shell) = args.generate_completion {
+        use clap::CommandFactory;
+        clap_complete::generate(
+            shell,
+            &mut Args::command(),
+            env!("CARGO_BIN_NAME"),
+            &mut io::stdout(),
         );
         return Ok(());
     }

@@ -12,12 +12,13 @@ Arguments:
   [FILE]  Specifies the path to the input file
 
 Options:
-      --formats               Prints the supported formats
-  -f, --from-format <FORMAT>  Specifies the format of the input file
-  -t, --to-format <FORMAT>    Specifies the format of the output file
-  -o, --output <FILE>         Specifies the path to the output file (default: standard output)
-  -h, --help                  Print help
-  -V, --version               Print version
+      --formats                      Prints the supported formats
+      --generate-completion <SHELL>  Generate shell completions [possible values: bash, elvish, fish, powershell, zsh]
+  -f, --from-format <FORMAT>         Specifies the format of the input file [possible values: json, pickle, plist, plist-b, toml, yaml]
+  -t, --to-format <FORMAT>           Specifies the format of the output file [possible values: json, pickle, plist, plist-b, toml, yaml]
+  -o, --output <FILE>                Specifies the path to the output file (default: standard output)
+  -h, --help                         Print help
+  -V, --version                      Print version
 ```
 
 ## Supported formats
