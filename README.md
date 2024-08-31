@@ -40,24 +40,25 @@ Supported formats:
 $ fconv -f toml -t yaml Cargo.toml
 package:
   name: fconv
-  version: 0.7.1
+  version: 0.8.0
   edition: '2021'
   description: Data format converter
   license: MIT
 dependencies:
   clap:
-    version: 4.3.11
+    version: 4.5.16
     features:
     - derive
-  indexmap: 2.0.0
-  plist: 1.4.3
-  serde: 1.0.167
+  clap_complete: 4.5.24
+  indexmap: 2.5.0
+  plist: 1.7.0
+  serde: 1.0.209
   serde-pickle: 1.1.1
-  serde_json: 1.0.100
-  serde_yaml: 0.9.22
-  toml: 0.7.6
+  serde_json: 1.0.127
+  serde_yaml_ng: 0.10.0
+  toml: 0.8.19
 dev-dependencies:
-  serde_test: 1.0.167
+  serde_test: 1.0.177
 profile:
   release:
     codegen-units: 1
