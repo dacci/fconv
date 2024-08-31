@@ -64,7 +64,7 @@ macro_rules! impl_error_serde {
 impl_error_serde!(plist::Error);
 impl_error_serde!(serde_json::Error);
 impl_error_serde!(serde_pickle::Error);
-impl_error_serde!(serde_yaml::Error);
+impl_error_serde!(serde_yaml_ng::Error);
 impl_error_serde!(toml::de::Error);
 impl_error_serde!(toml::ser::Error);
 
@@ -186,7 +186,7 @@ fn from_reader(format: Format, mut reader: impl io::Read) -> Result<Variant> {
             reader.read_to_string(&mut s)?;
             toml::de::from_str(&s)?
         }
-        Format::Yaml => serde_yaml::from_reader(reader)?,
+        Format::Yaml => serde_yaml_ng::from_reader(reader)?,
     };
 
     Ok(value)
@@ -202,7 +202,7 @@ fn to_writer(format: Format, mut writer: impl io::Write, value: &Variant) -> Res
             let s = toml::ser::to_string_pretty(value)?;
             writer.write_all(s.as_bytes())?
         }
-        Format::Yaml => serde_yaml::to_writer(writer, value)?,
+        Format::Yaml => serde_yaml_ng::to_writer(writer, value)?,
     };
 
     Ok(())

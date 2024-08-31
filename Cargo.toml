@@ -14,7 +14,7 @@ plist = "1.7.0"
 serde = "1.0.209"
 serde-pickle = "1.1.1"
 serde_json = "1.0.127"
-serde_yaml = "0.9.34"
+serde_yaml_ng = "0.10.0"
 toml = "0.8.19"
 
 [dev-dependencies]
