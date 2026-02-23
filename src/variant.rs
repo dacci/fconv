@@ -214,7 +214,7 @@ impl ser::Serialize for Variant {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_test::{assert_tokens, Token};
+    use serde_test::{Token, assert_tokens};
 
     #[test]
     fn test_ser_de() {
